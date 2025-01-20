@@ -1,10 +1,12 @@
 import pymysql
 from typing import List, Dict
 
-# Function to connect to the database
 def connect() -> pymysql.connections.Connection:
     """
-    Establish a connection to the database.
+    Establish a connection to the MySQL database.
+
+    Returns:
+        pymysql.connections.Connection: The database connection object.
     """
     return pymysql.connect(
         host='ich-edit.edu.itcareerhub.de',
@@ -14,20 +16,41 @@ def connect() -> pymysql.connections.Connection:
         cursorclass=pymysql.cursors.DictCursor
     )
 
-# Search for movies by a keyword
-def search_by_keyword(keyword: str) -> List[Dict]:
+
+def search_by_keyword(connection: pymysql.connections.Connection, keyword: str) -> List[Dict]:
+    """
+    Search for movies by a keyword in the title or description.
+
+    Args:
+        connection (pymysql.connections.Connection): The active database connection.
+        keyword (str): The keyword to search for.
+
+    Returns:
+        List[Dict]: A list of movies matching the keyword.
+    """
     query = """
     SELECT film_id, title, description, release_year 
     FROM film 
     WHERE title LIKE %s OR description LIKE %s 
     LIMIT 10;
     """
-    with connect().cursor() as cursor:
+    with connection.cursor() as cursor:
         cursor.execute(query, (f'%{keyword}%', f'%{keyword}%'))
         return cursor.fetchall()
 
-# Search for movies by genre and year
-def search_by_genre_and_year(genre: str, year: int) -> List[Dict]:
+
+def search_by_genre_and_year(connection: pymysql.connections.Connection, genre: str, year: int) -> List[Dict]:
+    """
+    Search for movies by genre and release year.
+
+    Args:
+        connection (pymysql.connections.Connection): The active database connection.
+        genre (str): The genre to search for.
+        year (int): The release year to search for.
+
+    Returns:
+        List[Dict]: A list of movies matching the genre and year.
+    """
     query = """
     SELECT f.film_id, f.title, f.description, f.release_year, c.name AS genre
     FROM film f
@@ -36,12 +59,22 @@ def search_by_genre_and_year(genre: str, year: int) -> List[Dict]:
     WHERE c.name = %s AND f.release_year = %s
     LIMIT 10;
     """
-    with connect().cursor() as cursor:
+    with connection.cursor() as cursor:
         cursor.execute(query, (genre, year))
         return cursor.fetchall()
 
-# Search for movies by actor
-def search_by_actor(actor_name: str) -> List[Dict]:
+
+def search_by_actor(connection: pymysql.connections.Connection, actor_name: str) -> List[Dict]:
+    """
+    Search for movies featuring a specific actor.
+
+    Args:
+        connection (pymysql.connections.Connection): The active database connection.
+        actor_name (str): The name of the actor.
+
+    Returns:
+        List[Dict]: A list of movies featuring the specified actor.
+    """
     query = """
     SELECT f.film_id, f.title, f.description, f.release_year
     FROM film f
@@ -50,14 +83,21 @@ def search_by_actor(actor_name: str) -> List[Dict]:
     WHERE CONCAT(a.first_name, ' ', a.last_name) LIKE %s
     LIMIT 10;
     """
-    with connect().cursor() as cursor:
+    with connection.cursor() as cursor:
         cursor.execute(query, (f'%{actor_name}%',))
         return cursor.fetchall()
 
-# Search for movies by rating
-def search_by_rating(rating: str) -> List[Dict]:
+
+def search_by_rating(connection: pymysql.connections.Connection, rating: str) -> List[Dict]:
     """
-    Search for movies by a specific rating category (e.g., G, PG, PG-13, R, NC-17).
+    Search for movies by a specific rating category.
+
+    Args:
+        connection (pymysql.connections.Connection): The active database connection.
+        rating (str): The rating category (e.g., G, PG, PG-13, R, NC-17).
+
+    Returns:
+        List[Dict]: A list of movies matching the rating category.
     """
     query = """
     SELECT film_id, title, description, release_year, rating
@@ -65,28 +105,39 @@ def search_by_rating(rating: str) -> List[Dict]:
     WHERE rating = %s
     LIMIT 10;
     """
-    with connect().cursor() as cursor:
+    with connection.cursor() as cursor:
         cursor.execute(query, (rating,))
         return cursor.fetchall()
 
-# Save a search log to the database
-def save_search_log(search_term: str, search_type: str) -> None:
+
+def save_search_log(connection: pymysql.connections.Connection, search_term: str, search_type: str) -> None:
+    """
+    Save a search log to the database.
+
+    Args:
+        connection (pymysql.connections.Connection): The active database connection.
+        search_term (str): The term that was searched.
+        search_type (str): The type of search performed (e.g., keyword, genre_year, actor, rating).
+    """
     query = """
     INSERT INTO search_logs (search_term, search_type)
     VALUES (%s, %s);
     """
-    try:
-        connection = connect()
-        with connection.cursor() as cursor:
-            cursor.execute(query, (search_term, search_type))
-        connection.commit()
-    except Exception as e:
-        print(f"Error saving log: {e}")
-    finally:
-        connection.close()
+    with connection.cursor() as cursor:
+        cursor.execute(query, (search_term, search_type))
+    connection.commit()
 
-# Get the most popular search queries
-def get_popular_searches() -> List[Dict]:
+
+def get_popular_searches(connection: pymysql.connections.Connection) -> List[Dict]:
+    """
+    Retrieve the most popular search queries.
+
+    Args:
+        connection (pymysql.connections.Connection): The active database connection.
+
+    Returns:
+        List[Dict]: A list of popular search queries with their frequency.
+    """
     query = """
     SELECT search_term, COUNT(*) AS frequency 
     FROM search_logs 
@@ -94,12 +145,18 @@ def get_popular_searches() -> List[Dict]:
     ORDER BY frequency DESC 
     LIMIT 10;
     """
-    with connect().cursor() as cursor:
+    with connection.cursor() as cursor:
         cursor.execute(query)
         return cursor.fetchall()
 
-# Ensure the search_logs table exists
-def ensure_search_logs_table() -> None:
+
+def ensure_search_logs_table(connection: pymysql.connections.Connection) -> None:
+    """
+    Ensure that the 'search_logs' table exists in the database.
+
+    Args:
+        connection (pymysql.connections.Connection): The active database connection.
+    """
     query = """
     CREATE TABLE IF NOT EXISTS search_logs (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -108,12 +165,6 @@ def ensure_search_logs_table() -> None:
         search_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     """
-    try:
-        connection = connect()
-        with connection.cursor() as cursor:
-            cursor.execute(query)
-        connection.commit()
-    except Exception as e:
-        print(f"Error ensuring table exists: {e}")
-    finally:
-        connection.close()
+    with connection.cursor() as cursor:
+        cursor.execute(query)
+    connection.commit()
