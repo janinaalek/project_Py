@@ -5,33 +5,32 @@ def get_user_input() -> str:
     Returns:
         str: The user's choice from the menu.
     """
+    menu_options = [
+        "Поиск фильмов по ключевому слову",
+        "Поиск фильмов по жанру и году",
+        "Поиск фильмов по актёру",
+        "Поиск фильмов по рейтингу",
+        "Показать популярные запросы",
+        "Выход"
+    ]
+
     print("\nВыберите действие:")
-    print("1. Поиск фильмов по ключевому слову")
-    print("2. Поиск фильмов по жанру и году")
-    print("3. Поиск фильмов по актёру")
-    print("4. Поиск фильмов по рейтингу")
-    print("5. Показать популярные запросы")
-    print("6. Выход")
+    for index, option in enumerate(menu_options, start=1):
+        print(f"{index}. {option}")
+
     return input("Ваш выбор: ")
 
-
 def display_results(results: list, result_type: str) -> None:
-    """
-    Display search results in the terminal.
-
-    Args:
-        results (list): A list of dictionaries containing search results.
-        result_type (str): The type of search performed (e.g., "keyword", "actor", "genre_year", "rating").
-    """
+    """Display search results in the terminal."""
     if not results:
         print(f"Нет результатов для запроса: {result_type}")
         return
 
     print("\nРезультаты поиска:")
     for film in results:
-        if result_type == "keyword" or result_type == "actor":
-            print(f"ID: {film['film_id']}, Название: {film['title']}, Год: {film['release_year']}")
-        elif result_type == "genre_year":
-            print(f"ID: {film['film_id']}, Название: {film['title']}, Год: {film['release_year']}, Жанр: {film['genre']}")
+        film_info = [f"ID: {film['film_id']}", f"Название: {film['title']}", f"Год: {film['release_year']}"]
+        if result_type == "genre_year":
+            film_info.append(f"Жанр: {film['genre']}")
         elif result_type == "rating":
-            print(f"ID: {film['film_id']}, Название: {film['title']}, Год: {film['release_year']}, Рейтинг: {film['rating']}")
+            film_info.append(f"Рейтинг: {film['rating']}")
+        print(", ".join(film_info))
